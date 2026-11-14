@@ -28,6 +28,9 @@
   var start = q.get('p') ? EXEC + '?p=' + encodeURIComponent(q.get('p')) + '&in=app' : HOME;
   var frame = document.getElementById('app'), off = document.getElementById('off');
 
+  function getTok() { try { return localStorage.getItem('oh_device_key') || ''; } catch (e) { return ''; } }
+  function setTok(t) { try { localStorage.setItem('oh_device_key', t); } catch (e) {} }
+
   // Swap in a fresh frame each time so the back button can't step from sign in back to the list.
   function show(url) {
     var n = document.createElement('iframe');
@@ -44,6 +47,8 @@
     var d = e.data || {};
     if (d.oh === 'kiosk' && d.id) show(EXEC + '?p=' + encodeURIComponent(d.id) + '&in=app');
     else if (d.oh === 'home') show(HOME);
+    else if (d.oh === 'savepin' && d.pin) setTok(d.pin);
+    else if (d.oh === 'getpin' && e.source) e.source.postMessage({ oh: 'pin', pin: getTok() }, e.origin);
   });
 
   // Block the Android back button from leaving the app.
