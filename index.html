@@ -21,6 +21,25 @@
 <body>
 <iframe id="app" title="Open House Sign In" allow="clipboard-write"></iframe>
 <div id="off" hidden><div><b>No internet connection</b>Connect the tablet to wifi and the app will load on its own.</div></div>
+  <script>
+/* Keep the screen awake while the app is open */
+(function () {
+  let lock = null;
+  async function keep() {
+    try {
+      if (document.visibilityState === 'visible' && 'wakeLock' in navigator && !lock) {
+        lock = await navigator.wakeLock.request('screen');
+        lock.addEventListener('release', function () { lock = null; });
+      }
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', keep);
+  window.addEventListener('focus', keep);
+  document.addEventListener('pointerdown', keep, true);
+  setInterval(keep, 60000);
+  keep();
+})();
+</script>
 <script>
   var EXEC = 'https://script.google.com/macros/s/AKfycbwOQDj_TLQQN8lwyYFaJ1L9kYEEAiP9Rou6HUWGJC2qsN60Ku8r1nj8loVMMIjK6KEs/exec';
   var HOME = EXEC + '?in=app';
