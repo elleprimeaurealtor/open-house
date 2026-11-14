@@ -10,25 +10,46 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-  html, body { margin:0; height:100%; background:#0B3A45; overflow:hidden; }
+  html, body { margin:0; height:100%; background:#FCF5E5; overflow:hidden; }
   iframe { position:fixed; inset:0; width:100%; height:100%; border:0; }
   #off { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:30px;
-         color:#FCF5E5; font:20px/1.5 Georgia, serif; background:#0B3A45; }
+         color:#FCF5E5; font:20px/1.5 Georgia, serif; background:#0B3A45; z-index:5; }
   #off[hidden] { display:none; }
   #off b { color:#A78021; display:block; font-size:26px; margin-bottom:8px; }
 </style>
 </head>
 <body>
 <iframe id="app" title="Open House Sign In" allow="clipboard-write"></iframe>
-<div id="off" hidden><div><b>No internet connection</b>Connect the tablet to wifi and the sign in screen will load on its own.</div></div>
+<div id="off" hidden><div><b>No internet connection</b>Connect the tablet to wifi and the app will load on its own.</div></div>
 <script>
   var EXEC = 'https://script.google.com/macros/s/AKfycbwOQDj_TLQQN8lwyYFaJ1L9kYEEAiP9Rou6HUWGJC2qsN60Ku8r1nj8loVMMIjK6KEs/exec';
+  var HOME = EXEC + '?in=app';
   var q = new URLSearchParams(location.search);
-  var src = EXEC + (q.get('p') ? '?p=' + encodeURIComponent(q.get('p')) : '?m=app');
+  var start = q.get('p') ? EXEC + '?p=' + encodeURIComponent(q.get('p')) + '&in=app' : HOME;
   var frame = document.getElementById('app'), off = document.getElementById('off');
-  function load() { off.hidden = true; frame.src = src; }
-  if (navigator.onLine) load(); else off.hidden = false;
-  window.addEventListener('online', function () { if (!frame.getAttribute('src')) load(); });
+
+  // Swap in a fresh frame each time so the back button can't step from sign in back to the list.
+  function show(url) {
+    var n = document.createElement('iframe');
+    n.id = 'app'; n.title = 'Open House Sign In'; n.setAttribute('allow', 'clipboard-write'); n.src = url;
+    frame.parentNode.replaceChild(n, frame); frame = n; off.hidden = true;
+  }
+  if (navigator.onLine) show(start); else off.hidden = false;
+  window.addEventListener('online', function () { if (!off.hidden) show(start); });
+
+  window.addEventListener('message', function (e) {
+    var host = '';
+    try { host = new URL(e.origin).hostname; } catch (err) { return; }
+    if (!/(\.googleusercontent\.com|^script\.google\.com)$/.test(host)) return;
+    var d = e.data || {};
+    if (d.oh === 'kiosk' && d.id) show(EXEC + '?p=' + encodeURIComponent(d.id) + '&in=app');
+    else if (d.oh === 'home') show(HOME);
+  });
+
+  // Block the Android back button from leaving the app.
+  history.pushState(null, '', location.href);
+  window.addEventListener('popstate', function () { history.pushState(null, '', location.href); });
+
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 </body>
